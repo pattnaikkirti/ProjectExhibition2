@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gesture Lingo - Detection</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar glass-panel">
+        <a href="index.html" class="nav-logo">Gesture Lingo</a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="detect.html" class="active">Detection</a>
+            <a href="about.html">About Us</a>
+        </div>
+    </nav>
+
+    <main class="content-area detect-page">
+        <div class="vision-section glass-panel">
+            <div class="video-header">
+                <h2>Live Detection Feed</h2>
+                <span class="live-indicator">● LIVE</span>
+            </div>
+            <div class="video-container">
+                <video id="webcam" class="webcam-feed" autoplay playsinline muted></video>
+                <canvas id="output_canvas" class="output-canvas"></canvas>
+            </div>
+        </div>
+
+        <div class="chat-section glass-panel">
+            <h2>Translation Output</h2>
+            
+            <div class="history-box" id="history-box">
+                <span class="history-word">System</span>
+                <span class="history-word">Ready.</span>
+                <span class="history-word">Waiting</span>
+                <span class="history-word">for</span>
+                <span class="history-word">input...</span>
+            </div>
+
+            <div class="statement-box">
+                <h3>Current Statement</h3>
+                <div class="statement-controls">
+                    <p class="final-statement" id="current-statement">Waiting for input...</p>
+                    <button class="speak-btn" id="speak-btn" title="Speak Aloud">🔊 Speak</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="detect.js"></script>
+</body>
+</html>
