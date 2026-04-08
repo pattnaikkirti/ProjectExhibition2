@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gesture Lingo - Detection</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="apple-mesh-bg">
+        <div class="mesh-orb orb-1"></div>
+        <div class="mesh-orb orb-2"></div>
+        <div class="mesh-orb orb-3"></div>
+    </div>
+
+    <nav class="navbar glass-panel">
+        <a href="index.html" class="nav-logo">Gesture Lingo</a>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="detect.html" class="active">Detection</a>
+            <a href="about.html">About Us</a>
+        </div>
+    </nav>
+
+    <main class="content-area detect-page">
+        <div class="vision-section glass-panel">
+            <div class="video-header">
+                <h2>Live Detection Feed</h2>
+                <span class="live-indicator">● LIVE</span>
+            </div>
+            <div class="video-container">
+                <video id="webcam" class="webcam-feed" autoplay playsinline muted></video>
+                <canvas id="output_canvas" class="output-canvas"></canvas>
+            </div>
+        </div>
+
+        <div class="chat-section glass-panel">
+            <h2>1. Sign to Text (AI)</h2>
+            
+            <div class="history-box" id="history-box">
+                <span class="history-word">System</span>
+                <span class="history-word">Ready.</span>
+            </div>
+
+            <div class="statement-box">
+                <h3>Current Statement</h3>
+                <div class="statement-controls">
+                    <p class="final-statement" id="current-statement">Waiting for camera...</p>
+                    <button class="speak-btn" id="speak-btn" title="Speak Aloud">🔊 Speak</button>
+                </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <h2>2. Visual Sign Composer</h2>
+            <div class="text-to-sign-box">
+                <div class="input-group">
+                    <input type="text" id="text-to-sign-input" class="sign-input" placeholder="Type here...">
+                    <button class="compose-btn" id="translate-btn">Compose</button>
+                    <button class="compose-btn" id="speak-input-btn" title="Speak Typed Text" style="padding: 10px 15px;">🔊</button>
+                </div>
+                
+                <div class="sign-display" id="sign-display">
+                    </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="detect.js"></script>
+</body>
+</html>
+
+
+
