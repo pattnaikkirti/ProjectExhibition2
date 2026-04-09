@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISL Real-Time Recognition</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+        }
+        .video-container {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        #video-feed {
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .info-box {
+            width: 48%;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #007bff;
+            font-size: 18px;
+        }
+        .text-display {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            min-height: 25px;
+            word-wrap: break-word;
+        }
+        .current-sign {
+            color: #28a745;
+            font-size: 20px;
+        }
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 0 5px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .instructions {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .instructions h4 {
+            margin-top: 0;
+            color: #495057;
+        }
+        .instructions ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+        .landmark-info {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .landmark-info strong {
+            color: #856404;
+        }
+        @media (max-width: 768px) {
+            .info-panel {
+                flex-direction: column;
+            }
+            .info-box {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Indian Sign Language Real-Time Recognition</h1>
+        
+        <div class="instructions">
+            <h4>Instructions:</h4>
+            <ul>
+                <li>Position your hand in front of the camera</li>
+                <li>Make clear sign gestures</li>
+                <li>Red dots with white borders show hand joint positions</li>
+                <li>White lines connect the joints to show hand structure</li>
+                <li>Hold each sign steady for better recognition</li>
+            </ul>
+        </div>
+
+        <div class="video-container">
+            <img id="video-feed" src="/video_feed" alt="Live Video Feed">
+        </div>
+
+        <div class="info-panel">
+            <div class="info-box">
+                <h3>Current Sign</h3>
+                <div class="text-display current-sign" id="current-sign">Waiting for sign...</div>
+                <div class="landmark-info">
+                    <strong>Hand Landmarks:</strong> Red dots with white borders are visible on your hand joints when detected
+                </div>
+            </div>
+            <div class="info-box">
+                <h3>Recognized Text</h3>
+                <div class="text-display" id="recognized-text"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-danger" onclick="clearText()">Clear Text</button>
+            <button class="btn btn-primary" onclick="refreshVideo()">Refresh Video</button>
+        </div>
+    </div>
+
+    <script>
+        // Update text displays periodically
+        function updateTextDisplays() {
+            fetch('/get_text')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('current-sign').textContent = data.current_sign || 'Waiting for sign...';
+                    document.getElementById('recognized-text').textContent = data.recognized_text;
+                })
+                .catch(error => console.error('Error fetching text:', error));
+        }
+
+        // Clear the recognized text
+        function clearText() {
+            fetch('/clear_text')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('recognized-text').textContent = '';
+                    }
+                })
+                .catch(error => console.error('Error clearing text:', error));
+        }
+
+        // Refresh video feed
+        function refreshVideo() {
+            const video = document.getElementById('video-feed');
+            video.src = '/video_feed?' + new Date().getTime();
+        }
+
+        // Update text displays every 500ms
+        setInterval(updateTextDisplays, 500);
+
+        // Initial update
+        updateTextDisplays();
+    </script>
+</body>
+</html>

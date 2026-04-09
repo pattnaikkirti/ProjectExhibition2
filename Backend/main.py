@@ -4,29 +4,22 @@ from dotenv import load_dotenv
 load_dotenv()
 import cv2
 import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 import numpy as np
 import joblib
 from collections import deque
 import base64
-import io
-from flask import Flask, render_template, request, send_from_directory
-from flask_socketio import SocketIO, emit
+import os
 from google import genai
 from google.genai import types
 import pyttsx3
-import threading
-import time
-
-app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
-
 engine = pyttsx3.init()
-
 def speak(text):
     engine.say(text)
     engine.runAndWait()
 
-def generate(recognized_text):
+def generate():
     client = genai.Client(
         api_key=os.environ.get("GOOGLE_API_KEY"),
     )
@@ -148,111 +141,86 @@ The user's request for space-less conversion is now clearer. I've broken down th
     print()
     return corrected_text.strip()
 
+
 clf = joblib.load("isl_model.pkl")
 encoder = joblib.load("isl_label_encoder.pkl")
 
-mp_hands = mp.solutions.hands
-mp_drawing = mp.solutions.drawing_utils
-hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.7)
+# Create HandLandmarker
+import os
+model_path = os.path.join(os.path.dirname(__file__), 'hand_landmarker.task')
+base_options = python.BaseOptions(model_asset_path=model_path)
+options = vision.HandLandmarkerOptions(base_options=base_options, num_hands=1)
+detector = vision.HandLandmarker.create_from_options(options)
 
-# Global state for simplicity (in production, use per-socket state)
-clients = {}
+# Webcam
+cap = cv2.VideoCapture(0)
 
-@socketio.on('connect')
-def handle_connect():
-    clients[request.sid] = {
-        'window_size': 5,
-        'predictions_window': deque(maxlen=5),
-        'recognized_text': "",
-        'current_sign': "",
-        'hand_present': False
-    }
-    print(f"Client {request.sid} connected")
+window_size = 5
+predictions_window = deque(maxlen=window_size)
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    if request.sid in clients:
-        del clients[request.sid]
-    print(f"Client {request.sid} disconnected")
+recognized_text = ""
+current_sign = ""
+hand_present = False  
 
-@socketio.on('frame')
-def handle_frame(data):
-    sid = request.sid
-    if sid not in clients:
-        return
+print("Press ESC to exit.")
 
-    client = clients[sid]
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret:
+        break
 
-    # Decode base64 image
-    header, encoded = data.split(',', 1)
-    img_data = base64.b64decode(encoded)
-    nparr = np.frombuffer(img_data, np.uint8)
-    frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-    if frame is None:
-        return
-
-    frame = cv2.flip(frame, 1)
+    frame = cv2.flip(frame, 1) 
     image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = hands.process(image_rgb)
+    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image_rgb)
+    results = detector.detect(mp_image)
 
-    update = {
-        'current_sign': client['current_sign'],
-        'recognized_text': client['recognized_text'],
-        'hand_present': client['hand_present']
-    }
+    if results.hand_landmarks:
+        hand_present = True 
 
-    if results.multi_hand_landmarks:
-        client['hand_present'] = True
+        for hand_landmarks in results.hand_landmarks:
+            # Draw landmarks on frame
+            for landmark in hand_landmarks:
+                x = int(landmark.x * frame.shape[1])
+                y = int(landmark.y * frame.shape[0])
+                cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
 
-        for hand_landmarks in results.multi_hand_landmarks:
             landmarks = []
-            for lm in hand_landmarks.landmark:
+            for lm in hand_landmarks:
                 landmarks.extend([lm.x, lm.y, lm.z])
 
             pred = clf.predict([landmarks])[0]
-            client['predictions_window'].append(pred)
+            predictions_window.append(pred)
 
-            smooth_pred = max(set(client['predictions_window']), key=client['predictions_window'].count)
-            client['current_sign'] = encoder.inverse_transform([smooth_pred])[0]
+            smooth_pred = max(set(predictions_window), key=predictions_window.count)
+            current_sign = encoder.inverse_transform([smooth_pred])[0]
 
-            update['current_sign'] = client['current_sign']
+            cv2.rectangle(frame, (40, 20), (400, 80), (0, 0, 0), -1)
+            cv2.putText(frame, f"Current Sign: {current_sign}", (50, 60),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 3)
 
     else:
-        if client['hand_present'] and client['current_sign'] != "":
-            client['recognized_text'] += client['current_sign']
-            client['current_sign'] = ""
-            update['recognized_text'] = client['recognized_text']
-            update['current_sign'] = ""
-        client['hand_present'] = False
+        if hand_present and current_sign != "":
+            recognized_text += current_sign
+            current_sign = ""
+        hand_present = False
+        
 
-    update['hand_present'] = client['hand_present']
-    emit('update', update)
+    cv2.rectangle(frame, (40, 100), (800, 150), (0, 0, 0), -1)
+    cv2.putText(frame, f"Text: {recognized_text}", (50, 140),
+                cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 0, 0), 2)
 
-@socketio.on('finish')
-def handle_finish():
-    sid = request.sid
-    if sid not in clients:
-        return
+    cv2.imshow("ISL Real-Time Recognition (String)", frame)
 
-    client = clients[sid]
-    recognized_text = client['recognized_text']
-    if recognized_text:
-        converted_text = generate(recognized_text)
-        emit('final', {'converted_text': converted_text})
-        # Speak in a thread
-        threading.Thread(target=speak, args=(converted_text,)).start()
-    else:
-        emit('final', {'converted_text': 'No text recognized'})
+    if cv2.waitKey(1) & 0xFF == 27:  # ESC
+        break
 
-@app.route('/')
-def index():
-    return send_from_directory('../Frontend/Prototype2', 'index.html')
+cap.release()
+cv2.destroyAllWindows()
 
-@app.route('/detect.html')
-def detect():
-    return send_from_directory('../Frontend/Prototype2', 'detect.html')
+print("Final Recognized Text:", recognized_text)
 
-@app.route('/<path:filename>')
-def static_files(filename):
-    return send_from_directory('../Frontend/Prototype2', filename)
+
+if __name__ == "__main__":
+    converted_text=generate()
+    print(converted_text)
+    speak(converted_text)

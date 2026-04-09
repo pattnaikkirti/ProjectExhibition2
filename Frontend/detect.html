@@ -30,7 +30,7 @@
             </div>
             <div class="video-container">
                 <video id="webcam" class="webcam-feed" autoplay playsinline muted></video>
-                <canvas id="output_canvas" class="output-canvas"></canvas>
+                <canvas id="output_canvas" class="output-canvas" style="position: absolute; top: 0; left: 0; z-index: 10; pointer-events: none;"></canvas>
             </div>
         </div>
 
@@ -46,7 +46,9 @@
                 <h3>Current Statement</h3>
                 <div class="statement-controls">
                     <p class="final-statement" id="current-statement">Waiting for camera...</p>
+                    <div class="prediction-status" id="prediction-status"></div>
                     <button class="speak-btn" id="speak-btn" title="Speak Aloud">🔊 Speak</button>
+                    <button class="clear-btn" id="clear-btn" title="Clear Text">🗑️ Clear</button>
                 </div>
             </div>
 
