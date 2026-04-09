@@ -17,12 +17,13 @@ import io
 app = Flask(__name__, template_folder='../Frontend', static_folder='../Frontend')
 CORS(app)  # Enable CORS for all routes
 
-# Load model and encoder
-clf = joblib.load("isl_model.pkl")
-encoder = joblib.load("isl_label_encoder.pkl")
+# Load model and encoder from the backend directory
+backend_dir = os.path.dirname(__file__)
+clf = joblib.load(os.path.join(backend_dir, "isl_model.pkl"))
+encoder = joblib.load(os.path.join(backend_dir, "isl_label_encoder.pkl"))
 
 # Create HandLandmarker
-model_path = os.path.join(os.path.dirname(__file__), 'hand_landmarker.task')
+model_path = os.path.join(backend_dir, 'hand_landmarker.task')
 base_options = python.BaseOptions(model_asset_path=model_path)
 options = vision.HandLandmarkerOptions(base_options=base_options, num_hands=1)
 detector = vision.HandLandmarker.create_from_options(options)
